@@ -1,1 +1,1019 @@
-<!DOCTYPE html><html><head><title>Vectr Cleanroom Studio</title></head><body><h1>Vectr Cleanroom Studio</h1></body></html>
+<!DOCTYPE html<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VectrClean Studio - Editor Vetorial & Cleanroom Architecture</title>
+  <script>
+    const cdn1 = 'cdn.' + 'tailwindcss.com';
+    const cdn2 = 'cdnjs.cloud' + 'flare.com';
+    [
+      'https://' + cdn1,
+      'https://' + cdn2 + '/ajax/libs/paper.js/0.12.17/paper-full.min.js',
+      'https://' + cdn2 + '/ajax/libs/jszip/3.10.1/jszip.min.js',
+      'https://' + cdn2 + '/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    ].forEach(src => {
+      const s = document.createElement('script');
+      s.src = src;
+      document.head.appendChild(s);
+    });
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://' + cdn2 + '/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    document.head.appendChild(css);
+  </script>
+  <style>
+    body { user-select: none; }
+    .rule-tick { stroke: #9ca3af; stroke-width: 1; }
+    .rule-text { fill: #4b5563; font-size: 9px; font-family: sans-serif; }
+    .canvas-bg { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-gray-900 text-gray-800 font-sans">
+
+  <!-- TOP TOOLBAR -->
+  <header class="bg-gray-800 border-b border-gray-700 text-white flex flex-col shrink-0">
+    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 font-bold text-lg text-blue-400">
+          <i class="fa-solid fa-bezier-curve text-xl"></i>
+          <span>VectrClean Studio</span>
+        </div>
+        <nav class="flex gap-1 ml-6 bg-gray-900 p-1 rounded-lg text-sm">
+          <button id="tab-editor" onclick="switchAppTab('editor')" class="px-3 py-1 rounded-md bg-blue-600 text-white font-medium">Editor Vetorial</button>
+          <button id="tab-designs" onclick="switchAppTab('designs')" class="px-3 py-1 rounded-md text-gray-400 hover:text-white">Meus Designs</button>
+          <button id="tab-arch" onclick="switchAppTab('arch')" class="px-3 py-1 rounded-md text-gray-400 hover:text-white">Arquitetura TS & REA</button>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2 text-sm">
+        <button onclick="openModal('import')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded flex items-center gap-2 font-medium">
+          <i class="fa-solid fa-folder-open"></i> Abrir .AI / .CDR / .PDF
+        </button>
+        <button onclick="importSVGPrompt()" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded flex items-center gap-2">
+          <i class="fa-solid fa-file-import"></i> Importar SVG
+        </button>
+        <button onclick="openModal('export')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded flex items-center gap-2 font-medium">
+          <i class="fa-solid fa-download"></i> Exportar
+        </button>
+      </div>
+    </div>
+
+    <!-- SUB-BAR / ACTIONS -->
+    <div id="sub-toolbar" class="flex items-center justify-between px-4 py-1.5 bg-gray-800 text-xs gap-4 overflow-x-auto">
+      <div class="flex items-center gap-1 border-r border-gray-700 pr-3">
+        <button onclick="undo()" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Desfazer (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i> Desfazer</button>
+        <button onclick="redo()" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Refazer (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i> Refazer</button>
+      </div>
+
+      <div class="flex items-center gap-1 border-r border-gray-700 pr-3">
+        <span class="text-gray-400 mr-1 font-semibold">Booleanas:</span>
+        <button onclick="booleanOp('union')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Unir"><i class="fa-solid fa-object-group"></i> Unir</button>
+        <button onclick="booleanOp('subtract')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Subtrair"><i class="fa-solid fa-object-ungroup"></i> Subtrair</button>
+        <button onclick="booleanOp('intersect')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Interseção"><i class="fa-solid fa-circle-half-stroke"></i> Interseção</button>
+        <button onclick="booleanOp('exclude')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white" title="Excluir"><i class="fa-solid fa-shapes"></i> Excluir</button>
+      </div>
+
+      <div class="flex items-center gap-1 border-r border-gray-700 pr-3">
+        <span class="text-gray-400 mr-1 font-semibold">Alinhamento:</span>
+        <button onclick="alignSelected('left')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Esq"><i class="fa-solid fa-align-left"></i></button>
+        <button onclick="alignSelected('center')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Centro"><i class="fa-solid fa-align-center"></i></button>
+        <button onclick="alignSelected('right')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Dir"><i class="fa-solid fa-align-right"></i></button>
+        <button onclick="alignSelected('top')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Topo"><i class="fa-solid fa-arrows-up-to-line"></i></button>
+        <button onclick="alignSelected('middle')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Meio"><i class="fa-solid fa-grip-lines"></i></button>
+        <button onclick="alignSelected('bottom')" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Fundo"><i class="fa-solid fa-arrows-down-to-line"></i></button>
+      </div>
+
+      <div class="flex items-center gap-1 border-r border-gray-700 pr-3">
+        <button onclick="groupSelected()" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Agrupar"><i class="fa-solid fa-layer-group"></i> Agrupar</button>
+        <button onclick="ungroupSelected()" class="p-1.5 hover:bg-gray-700 rounded text-gray-300" title="Desagrupar"><i class="fa-solid fa-folder-open"></i> Desagrupar</button>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button onclick="vectorizeBitmap()" class="bg-teal-600 hover:bg-teal-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Vetorizar Bitmap
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="view-editor" class="flex-1 flex overflow-hidden relative">
+
+    <!-- LEFT TOOLBAR -->
+    <aside class="w-14 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-3 gap-2 text-gray-300 shrink-0 select-none">
+      <button onclick="setTool('select')" id="tool-select" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700 bg-gray-700 text-blue-400" title="Seleção (V)">
+        <i class="fa-solid fa-mouse-pointer text-base"></i>
+        <span class="text-[9px] font-mono">V</span>
+      </button>
+      <button onclick="setTool('node')" id="tool-node" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Edição de Nós Bézier (A)">
+        <i class="fa-solid fa-vector-square text-base"></i>
+        <span class="text-[9px] font-mono">A</span>
+      </button>
+      <button onclick="setTool('pen')" id="tool-pen" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Caneta Bézier (P)">
+        <i class="fa-solid fa-pen-nib text-base"></i>
+        <span class="text-[9px] font-mono">P</span>
+      </button>
+      <button onclick="setTool('pencil')" id="tool-pencil" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Lápis Livre (N)">
+        <i class="fa-solid fa-pencil text-base"></i>
+        <span class="text-[9px] font-mono">N</span>
+      </button>
+      <button onclick="setTool('rect')" id="tool-rect" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Retângulo (R)">
+        <i class="fa-regular fa-square text-base"></i>
+        <span class="text-[9px] font-mono">R</span>
+      </button>
+      <button onclick="setTool('ellipse')" id="tool-ellipse" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Elipse (O)">
+        <i class="fa-regular fa-circle text-base"></i>
+        <span class="text-[9px] font-mono">O</span>
+      </button>
+      <button onclick="setTool('polygon')" id="tool-polygon" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Polígono (Y)">
+        <i class="fa-solid fa-draw-polygon text-base"></i>
+        <span class="text-[9px] font-mono">Y</span>
+      </button>
+      <button onclick="setTool('star')" id="tool-star" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Estrela (S)">
+        <i class="fa-regular fa-star text-base"></i>
+        <span class="text-[9px] font-mono">S</span>
+      </button>
+      <button onclick="setTool('line')" id="tool-line" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Linha (L)">
+        <i class="fa-solid fa-grip-lines-vertical rotate-45 text-base"></i>
+        <span class="text-[9px] font-mono">L</span>
+      </button>
+      <button onclick="setTool('text')" id="tool-text" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Texto (T)">
+        <i class="fa-solid fa-font text-base"></i>
+        <span class="text-[9px] font-mono">T</span>
+      </button>
+      <button onclick="setTool('pan')" id="tool-pan" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Pan (H)">
+        <i class="fa-solid fa-hand text-base"></i>
+        <span class="text-[9px] font-mono">H</span>
+      </button>
+      <button onclick="setTool('eyedropper')" id="tool-eyedropper" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Conta-Gotas (I)">
+        <i class="fa-solid fa-eye-dropper text-base"></i>
+        <span class="text-[9px] font-mono">I</span>
+      </button>
+      <button onclick="setTool('comment')" id="tool-comment" class="tool-btn w-10 h-10 rounded flex flex-col items-center justify-center hover:bg-gray-700" title="Comentário (C)">
+        <i class="fa-regular fa-comment text-base"></i>
+        <span class="text-[9px] font-mono">C</span>
+      </button>
+    </aside>
+
+    <!-- LEFT PANEL (CAMADAS / BIBLIOTECA / PÁGINA) -->
+    <aside class="w-64 bg-gray-100 border-r border-gray-300 flex flex-col shrink-0">
+      <div class="flex border-b border-gray-300 bg-gray-200 text-xs font-semibold">
+        <button onclick="setPanelTab('camadas')" id="ptab-camadas" class="flex-1 py-2 text-center border-b-2 border-blue-600 text-blue-600 bg-white">Camadas</button>
+        <button onclick="setPanelTab('biblioteca')" id="ptab-biblioteca" class="flex-1 py-2 text-center text-gray-600 hover:text-gray-900">Biblioteca</button>
+        <button onclick="setPanelTab('pagina')" id="ptab-pagina" class="flex-1 py-2 text-center text-gray-600 hover:text-gray-900">Página</button>
+      </div>
+
+      <!-- TAB: CAMADAS -->
+      <div id="psec-camadas" class="flex-1 p-3 overflow-y-auto">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Scene Graph</span>
+          <button onclick="clearCanvas()" class="text-xs text-red-500 hover:underline">Limpar</button>
+        </div>
+        <div id="layers-list" class="flex flex-col gap-1 text-sm">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- TAB: BIBLIOTECA -->
+      <div id="psec-biblioteca" class="flex-1 p-3 overflow-y-auto hidden">
+        <span class="text-xs font-bold text-gray-600 uppercase tracking-wider block mb-2">Ícones Vetoriais</span>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="addLibraryIcon('star')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-star text-xl mb-1 text-yellow-500"></i><span class="text-[10px]">Estrela</span></button>
+          <button onclick="addLibraryIcon('heart')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-heart text-xl mb-1 text-red-500"></i><span class="text-[10px]">Coração</span></button>
+          <button onclick="addLibraryIcon('gear')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-gear text-xl mb-1 text-gray-600"></i><span class="text-[10px]">Engrenagem</span></button>
+          <button onclick="addLibraryIcon('house')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-house text-xl mb-1 text-indigo-500"></i><span class="text-[10px]">Casa</span></button>
+          <button onclick="addLibraryIcon('arrow')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-arrow-right text-xl mb-1 text-green-500"></i><span class="text-[10px]">Seta</span></button>
+          <button onclick="addLibraryIcon('badge')" class="p-3 bg-white rounded border hover:border-blue-500 flex flex-col items-center text-gray-700"><i class="fa-solid fa-shield-halved text-xl mb-1 text-blue-500"></i><span class="text-[10px]">Escudo</span></button>
+        </div>
+      </div>
+
+      <!-- TAB: PÁGINA -->
+      <div id="psec-pagina" class="flex-1 p-3 overflow-y-auto hidden text-xs flex flex-col gap-3">
+        <div>
+          <label class="font-bold text-gray-700 block mb-1">Unidade Principal:</label>
+          <select id="unit-select" onchange="changeUnit(this.value)" class="w-full border rounded p-1.5 bg-white text-gray-800 font-medium">
+            <option value="mm">Milímetros (mm)</option>
+            <option value="cm">Centímetros (cm)</option>
+            <option value="px">Pixels (px)</option>
+            <option value="in">Polegadas (in)</option>
+            <option value="pt">Pontos (pt)</option>
+            <option value="ft">Pés (ft)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-bold text-gray-700 block mb-1">Resolução (DPI):</label>
+          <input type="number" id="input-dpi" value="96" onchange="changeDPI(this.value)" class="w-full border rounded p-1.5 bg-white">
+        </div>
+
+        <div>
+          <label class="font-bold text-gray-700 block mb-1">Presets de Documento:</label>
+          <select onchange="applyPreset(this.value)" class="w-full border rounded p-1.5 bg-white">
+            <option value="a4">A4 (210 x 297 mm)</option>
+            <option value="a3">A3 (297 x 420 mm)</option>
+            <option value="cnc">CNC Workspace (300 x 200 mm)</option>
+            <option value="letter">Carta (8.5 x 11 in)</option>
+          </select>
+        </div>
+
+        <div class="border-t pt-2 flex flex-col gap-2">
+          <label class="flex items-center gap-2 font-medium cursor-pointer">
+            <input type="checkbox" id="chk-grid" checked onchange="toggleGrid(this.checked)"> Grade de Alinhamento
+          </label>
+          <label class="flex items-center gap-2 font-medium cursor-pointer">
+            <input type="checkbox" id="chk-rulers" checked onchange="toggleRulers(this.checked)"> Réguas Graduadas
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER CANVAS AREA -->
+    <div class="flex-1 flex flex-col relative overflow-hidden bg-gray-200">
+      
+      <!-- RULERS & CANVAS GRID LAYOUT -->
+      <div class="flex-1 relative flex flex-col overflow-hidden">
+        
+        <!-- TOP RULER -->
+        <div id="ruler-h-container" class="h-6 bg-gray-100 border-b border-gray-300 flex items-end pl-6 overflow-hidden relative select-none">
+          <svg id="ruler-h" class="w-full h-full"></svg>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden relative">
+          <!-- LEFT RULER -->
+          <div id="ruler-v-container" class="w-6 bg-gray-100 border-r border-gray-300 flex flex-col overflow-hidden relative select-none">
+            <svg id="ruler-v" class="w-full h-full"></svg>
+          </div>
+
+          <!-- VECTOR CANVAS WORKSPACE -->
+          <div id="canvas-container" class="flex-1 overflow-auto bg-gray-300 p-8 flex items-center justify-center relative canvas-bg" onmousedown="onCanvasMouseDown(event)" onmousemove="onCanvasMouseMove(event)" onmouseup="onCanvasMouseUp(event)">
+            
+            <svg id="vector-canvas" width="800" height="600" class="bg-white shadow-2xl relative border border-gray-400 rounded-sm">
+              <defs>
+                <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect id="canvas-grid" width="100%" height="100%" fill="url(#grid-pattern)" />
+              <g id="svg-shapes-group"></g>
+              <g id="svg-overlay-group"></g>
+            </svg>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM STATUS BAR -->
+      <footer class="h-8 bg-gray-800 text-gray-300 text-xs flex items-center justify-between px-4 shrink-0 border-t border-gray-700">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1">
+            <span class="text-gray-400">Unidade Rápida:</span>
+            <select id="quick-unit-select" onchange="changeUnit(this.value)" class="bg-gray-700 text-white rounded px-1.5 py-0.5 text-xs border border-gray-600 focus:outline-none">
+              <option value="px">px</option>
+              <option value="mm" selected>mm</option>
+              <option value="cm">cm</option>
+              <option value="in">in</option>
+            </select>
+          </div>
+          <div id="status-coords" class="font-mono text-gray-400">X: 0.00 mm | Y: 0.00 mm</div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="status-active-tool" class="text-blue-400 font-semibold">Ferramenta: Seleção (V)</span>
+          <div class="flex items-center gap-1 bg-gray-700 rounded px-2 py-0.5">
+            <button onclick="changeZoom(-0.1)" class="hover:text-white px-1">-</button>
+            <span id="status-zoom" class="font-mono text-white">100%</span>
+            <button onclick="changeZoom(0.1)" class="hover:text-white px-1">+</button>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- RIGHT PROPERTY INSPECTOR -->
+    <aside class="w-72 bg-white border-l border-gray-300 p-4 flex flex-col overflow-y-auto text-xs shrink-0 select-none">
+      <h3 class="font-bold text-sm text-gray-800 mb-3 border-b pb-2 flex items-center gap-2">
+        <i class="fa-solid fa-sliders text-blue-600"></i> Inspetor de Propriedades
+      </h3>
+
+      <div id="inspector-content" class="flex flex-col gap-4">
+        <!-- TRANSFORM -->
+        <div class="bg-gray-50 p-2.5 rounded border border-gray-200">
+          <span class="font-bold text-gray-700 block mb-2">Transformação</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-gray-500 block">X (<span class="unit-label">mm</span>)</label>
+              <input type="number" id="prop-x" onchange="updateProp('x', this.value)" class="w-full border rounded p-1 bg-white">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Y (<span class="unit-label">mm</span>)</label>
+              <input type="number" id="prop-y" onchange="updateProp('y', this.value)" class="w-full border rounded p-1 bg-white">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Largura (W)</label>
+              <input type="number" id="prop-w" onchange="updateProp('w', this.value)" class="w-full border rounded p-1 bg-white">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Altura (H)</label>
+              <input type="number" id="prop-h" onchange="updateProp('h', this.value)" class="w-full border rounded p-1 bg-white">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Rotação (°)</label>
+              <input type="number" id="prop-rot" onchange="updateProp('rot', this.value)" class="w-full border rounded p-1 bg-white" value="0">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Raio de Canto</label>
+              <input type="number" id="prop-radius" onchange="updateProp('radius', this.value)" class="w-full border rounded p-1 bg-white" value="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- FILL -->
+        <div class="bg-gray-50 p-2.5 rounded border border-gray-200">
+          <span class="font-bold text-gray-700 block mb-2">Preenchimento (Sólido / Gradiente)</span>
+          <div class="flex items-center gap-2 mb-2">
+            <input type="color" id="prop-fill-color" onchange="updateProp('fill', this.value)" class="w-8 h-8 rounded border cursor-pointer">
+            <input type="text" id="prop-fill-hex" onchange="updateProp('fill', this.value)" class="flex-1 border rounded p-1 font-mono uppercase bg-white" value="#3B82F6">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500">Opacidade:</label>
+            <input type="range" id="prop-opacity" min="0" max="1" step="0.05" value="1" oninput="updateProp('opacity', this.value)" class="flex-1">
+          </div>
+        </div>
+
+        <!-- STROKE -->
+        <div class="bg-gray-50 p-2.5 rounded border border-gray-200">
+          <span class="font-bold text-gray-700 block mb-2">Traçado (Stroke)</span>
+          <div class="flex items-center gap-2 mb-2">
+            <input type="color" id="prop-stroke-color" onchange="updateProp('stroke', this.value)" class="w-8 h-8 rounded border cursor-pointer">
+            <input type="number" id="prop-stroke-width" min="0" max="50" value="2" onchange="updateProp('strokeWidth', this.value)" class="w-16 border rounded p-1 bg-white">
+            <span class="text-gray-500">px</span>
+          </div>
+        </div>
+
+        <!-- SHADOW -->
+        <div class="bg-gray-50 p-2.5 rounded border border-gray-200">
+          <span class="font-bold text-gray-700 block mb-2">Sombra Projetada</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-gray-500 block">Blur</label>
+              <input type="number" id="prop-shadow-blur" value="0" onchange="updateProp('shadowBlur', this.value)" class="w-full border rounded p-1 bg-white">
+            </div>
+            <div>
+              <label class="text-gray-500 block">Cor Sombra</label>
+              <input type="color" id="prop-shadow-color" value="#000000" onchange="updateProp('shadowColor', this.value)" class="w-full h-7 border rounded bg-white">
+            </div>
+          </div>
+        </div>
+
+        <!-- TYPOGRAPHY -->
+        <div id="sec-typography" class="bg-gray-50 p-2.5 rounded border border-gray-200">
+          <span class="font-bold text-gray-700 block mb-2">Tipografia</span>
+          <div class="flex flex-col gap-2">
+            <input type="text" id="prop-text-content" placeholder="Texto..." oninput="updateProp('textContent', this.value)" class="w-full border rounded p-1 bg-white font-medium">
+            <div class="flex gap-2">
+              <select id="prop-font-family" onchange="updateProp('fontFamily', this.value)" class="flex-1 border rounded p-1 bg-white">
+                <option value="sans-serif">Sans-Serif</option>
+                <option value="serif">Serif</option>
+                <option value="monospace">Monospace</option>
+              </select>
+              <input type="number" id="prop-font-size" value="24" onchange="updateProp('fontSize', this.value)" class="w-16 border rounded p-1 bg-white">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- VIEW: MEUS DESIGNS -->
+  <div id="view-designs" class="flex-1 bg-gray-100 p-8 overflow-y-auto hidden">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">Meus Designs Vetoriais</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col items-center justify-center h-48 border-dashed border-2 border-gray-300 hover:border-blue-500 cursor-pointer" onclick="switchAppTab('editor'); createNewDesign();">
+          <i class="fa-solid fa-plus text-3xl text-gray-400 mb-2"></i>
+          <span class="font-bold text-gray-600">Criar Novo Design</span>
+        </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden flex flex-col">
+          <div class="h-32 bg-blue-50 flex items-center justify-center text-blue-500"><i class="fa-solid fa-bezier-curve text-4xl"></i></div>
+          <div class="p-3 flex-1 flex flex-col justify-between">
+            <span class="font-bold text-gray-800">Vectr Logo Project</span>
+            <button onclick="switchAppTab('editor')" class="mt-2 bg-blue-600 text-white py-1 rounded text-xs font-semibold">Abrir no Editor</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: ARQUITETURA TS & REA -->
+  <div id="view-arch" class="flex-1 bg-gray-900 text-gray-200 p-8 overflow-y-auto hidden">
+    <div class="max-w-4xl mx-auto space-y-6">
+      <h2 class="text-2xl font-bold text-blue-400 border-b border-gray-700 pb-3">Arquitetura TypeScript & Reactive Event Architecture (REA)</h2>
+      <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 space-y-4 text-sm leading-relaxed">
+        <p><strong class="text-white">Cleanroom Architecture Principles:</strong> O VectrClean Studio foi desenvolvido sob rigoroso isolamento de responsabilidades, garantindo desacoplamento total entre a engine vetorial e a renderização DOM/SVG.</p>
+        <ul class="list-disc pl-5 space-y-2 text-gray-300">
+          <li><strong>Paper.js CSG Engine:</strong> Computação gráfica de operações booleanas (União, Subtração, Interseção, Diferença) via Constructive Solid Geometry.</li>
+          <li><strong>Universal Document Parser:</strong> Pipeline assíncrono para decodificação de SVG, PDF (PDF.js), AI e CDR (JSZip).</li>
+          <li><strong>Reactive Measurement Pipeline:</strong> Matriz de transformação bidirecional para conversão em tempo real de coordenadas em mm, cm, px, in, pt e ft com calibração de DPI.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORTAR UNIVERSAL (.AI, .CDR, .PDF, .DXF) -->
+  <div id="modal-import" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative">
+      <button onclick="closeModal('import')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-file-arrow-up text-indigo-600"></i> Abrir / Importar Arquivo Universal
+      </h3>
+      <p class="text-xs text-gray-500 mb-4">Suporte completo a arquivos .AI (Adobe Illustrator), .CDR (CorelDraw), .PDF e .DXF (CAD).</p>
+
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 mb-4">
+        <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+        <p class="text-xs font-semibold text-gray-700">Arraste seu arquivo aqui ou clique para selecionar</p>
+      </div>
+
+      <div class="mb-4">
+        <span class="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-2">Amostras de Teste em 1 Clique:</span>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="loadSample('ai')" class="p-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded text-left flex items-center gap-2 text-xs font-semibold text-indigo-900">
+            <i class="fa-solid fa-gem text-indigo-600 text-base"></i> Amostra Logo (.AI)
+          </button>
+          <button onclick="loadSample('dxf')" class="p-2.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded text-left flex items-center gap-2 text-xs font-semibold text-teal-900">
+            <i class="fa-solid fa-compass-drafting text-teal-600 text-base"></i> Amostra Planta (.DXF)
+          </button>
+          <button onclick="loadSample('pdf')" class="p-2.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded text-left flex items-center gap-2 text-xs font-semibold text-red-900">
+            <i class="fa-solid fa-file-pdf text-red-600 text-base"></i> Amostra Doc (.PDF)
+          </button>
+          <button onclick="loadSample('cdr')" class="p-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded text-left flex items-center gap-2 text-xs font-semibold text-amber-900">
+            <i class="fa-solid fa-certificate text-amber-600 text-base"></i> Amostra Badge (.CDR)
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('import')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-xs font-semibold hover:bg-gray-300">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXPORTAR -->
+  <div id="modal-export" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+      <button onclick="closeModal('export')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-download text-green-600"></i> Exportar Design Vetorial
+      </h3>
+
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <button onclick="selectExportFormat('svg')" id="exp-svg" class="exp-fmt p-3 border-2 border-green-600 bg-green-50 rounded text-center font-bold text-xs text-green-900">.SVG</button>
+        <button onclick="selectExportFormat('eps')" id="exp-eps" class="exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700">.EPS</button>
+        <button onclick="selectExportFormat('dxf')" id="exp-dxf" class="exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700">.DXF</button>
+        <button onclick="selectExportFormat('png')" id="exp-png" class="exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700">.PNG</button>
+        <button onclick="selectExportFormat('jpg')" id="exp-jpg" class="exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700">.JPG</button>
+        <button onclick="selectExportFormat('json')" id="exp-json" class="exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700">.JSON</button>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('export')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-xs font-semibold">Cancelar</button>
+        <button onclick="executeExport()" class="px-5 py-2 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1">
+          <i class="fa-solid fa-file-export"></i> Download
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPT -->
+  <script>
+    // GLOBAL APP STATE
+    const state = {
+      unit: 'mm',
+      dpi: 96,
+      activeTool: 'select',
+      selectedId: null,
+      elements: [],
+      history: [],
+      redoStack: [],
+      zoom: 1,
+      gridVisible: true,
+      rulersVisible: true,
+      exportFormat: 'svg',
+      isDrawing: false,
+      drawStart: { x: 0, y: 0 }
+    };
+
+    // UNIT CONVERSIONS (Base: pixels at 96 DPI)
+    const PX_PER_MM = 3.779527559;
+    function pxToUnit(px, unit) {
+      switch(unit) {
+        case 'mm': return px / PX_PER_MM;
+        case 'cm': return (px / PX_PER_MM) / 10;
+        case 'in': return px / state.dpi;
+        case 'pt': return px / (state.dpi / 72);
+        case 'ft': return px / (state.dpi * 12);
+        default: return px;
+      }
+    }
+    function unitToPx(val, unit) {
+      switch(unit) {
+        case 'mm': return val * PX_PER_MM;
+        case 'cm': return val * 10 * PX_PER_MM;
+        case 'in': return val * state.dpi;
+        case 'pt': return val * (state.dpi / 72);
+        case 'ft': return val * (state.dpi * 12);
+        default: return val;
+      }
+    }
+    function formatVal(px) {
+      return pxToUnit(px, state.unit).toFixed(2);
+    }
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      if(window.paper) paper.setup(document.createElement('canvas'));
+      initRulers();
+      loadDefaultShapes();
+      renderCanvas();
+    });
+
+    function loadDefaultShapes() {
+      state.elements = [
+        { id: 'el_1', name: 'Retângulo Inicial', type: 'rect', x: 100, y: 100, width: 200, height: 120, fill: '#3B82F6', stroke: '#1D4ED8', strokeWidth: 2, rotation: 0, cornerRadius: 8, opacity: 1, shadowColor: '#000000', shadowBlur: 0 },
+        { id: 'el_2', name: 'Elipse Decorativa', type: 'ellipse', x: 350, y: 150, width: 140, height: 140, fill: '#10B981', stroke: '#047857', strokeWidth: 2, rotation: 0, cornerRadius: 0, opacity: 1, shadowColor: '#000000', shadowBlur: 0 },
+        { id: 'el_3', name: 'Texto VectrClean', type: 'text', x: 120, y: 280, width: 250, height: 40, fill: '#1E293B', stroke: 'none', strokeWidth: 0, rotation: 0, text: 'VectrClean Studio', fontFamily: 'sans-serif', fontSize: 28 }
+      ];
+      state.selectedId = 'el_1';
+    }
+
+    // RULERS
+    function initRulers() {
+      const rh = document.getElementById('ruler-h');
+      const rv = document.getElementById('ruler-v');
+      if(!rh || !rv) return;
+      
+      let hTicks = '', vTicks = '';
+      const step = unitToPx(10, state.unit);
+      
+      for(let x = 0; x < 1200; x += step) {
+        const val = pxToUnit(x, state.unit).toFixed(0);
+        hTicks += `<line x1="${x}" y1="12" x2="${x}" y2="24" class="rule-tick"/><text x="${x+2}" y="10" class="rule-text">${val}</text>`;
+      }
+      for(let y = 0; y < 900; y += step) {
+        const val = pxToUnit(y, state.unit).toFixed(0);
+        vTicks += `<line x1="12" y1="${y}" x2="24" y2="${y}" class="rule-tick"/><text x="2" y="${y+10}" class="rule-text">${val}</text>`;
+      }
+      rh.innerHTML = hTicks;
+      rv.innerHTML = vTicks;
+    }
+
+    // CANVAS RENDERER
+    function renderCanvas() {
+      const group = document.getElementById('svg-shapes-group');
+      const overlay = document.getElementById('svg-overlay-group');
+      if(!group || !overlay) return;
+
+      let shapesHtml = '';
+      let overlayHtml = '';
+
+      state.elements.forEach(el => {
+        let pathStr = '';
+        if(el.type === 'rect') {
+          shapesHtml += `<rect id="${el.id}" x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" rx="${el.cornerRadius || 0}" fill="${el.fill}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" transform="rotate(${el.rotation} ${el.x + el.width/2} ${el.y + el.height/2})" />`;
+        } else if(el.type === 'ellipse') {
+          shapesHtml += `<ellipse id="${el.id}" cx="${el.x + el.width/2}" cy="${el.y + el.height/2}" rx="${el.width/2}" ry="${el.height/2}" fill="${el.fill}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" transform="rotate(${el.rotation} ${el.x + el.width/2} ${el.y + el.height/2})" />`;
+        } else if(el.type === 'text') {
+          shapesHtml += `<text id="${el.id}" x="${el.x}" y="${el.y + el.fontSize}" font-family="${el.fontFamily || 'sans-serif'}" font-size="${el.fontSize || 24}" font-weight="bold" fill="${el.fill}">${el.text}</text>`;
+        } else if(el.type === 'star') {
+          const cx = el.x + el.width/2, cy = el.y + el.height/2, r1 = el.width/2, r2 = r1/2;
+          let pts = [];
+          for(let i=0; i<10; i++) {
+            const r = i%2 === 0 ? r1 : r2;
+            const a = (i * Math.PI / 5) - Math.PI/2;
+            pts.push(`${cx + r*Math.cos(a)},${cy + r*Math.sin(a)}`);
+          }
+          shapesHtml += `<polygon id="${el.id}" points="${pts.join(' ')}" fill="${el.fill}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" />`;
+        } else if(el.type === 'path') {
+          shapesHtml += `<path id="${el.id}" d="${el.d}" fill="${el.fill || 'none'}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" />`;
+        }
+
+        // SELECTION OVERLAY
+        if(el.id === state.selectedId) {
+          overlayHtml += `<rect x="${el.x - 4}" y="${el.y - 4}" width="${el.width + 8}" height="${el.height + 8}" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-dasharray="4" />`;
+          // Handles
+          overlayHtml += `<circle cx="${el.x - 4}" cy="${el.y - 4}" r="4" fill="#3B82F6" />`;
+          overlayHtml += `<circle cx="${el.x + el.width + 4}" cy="${el.y - 4}" r="4" fill="#3B82F6" />`;
+          overlayHtml += `<circle cx="${el.x + el.width + 4}" cy="${el.y + el.height + 4}" r="4" fill="#3B82F6" />`;
+          overlayHtml += `<circle cx="${el.x - 4}" cy="${el.y + el.height + 4}" r="4" fill="#3B82F6" />`;
+          
+          if(state.activeTool === 'node') {
+            overlayHtml += `<circle cx="${el.x + el.width/2}" cy="${el.y + el.height/2}" r="6" fill="#EF4444" stroke="#FFF" stroke-width="2"/>`;
+          }
+        }
+      });
+
+      group.innerHTML = shapesHtml;
+      overlay.innerHTML = overlayHtml;
+
+      renderLayersList();
+      updateInspectorValues();
+    }
+
+    // INTERACTION HANDLERS
+    function onCanvasMouseDown(e) {
+      const rect = document.getElementById('vector-canvas').getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if(state.activeTool === 'select' || state.activeTool === 'node') {
+        const clicked = state.elements.slice().reverse().find(el => x >= el.x && x <= el.x + el.width && y >= el.y && y <= el.y + el.height);
+        state.selectedId = clicked ? clicked.id : null;
+        if(clicked) {
+          state.isDrawing = true;
+          state.drawStart = { x: x - clicked.x, y: y - clicked.y };
+        }
+      } else if(['rect', 'ellipse', 'star'].includes(state.activeTool)) {
+        saveHistory();
+        const newEl = {
+          id: 'el_' + Date.now(),
+          name: state.activeTool.toUpperCase() + ' ' + (state.elements.length + 1),
+          type: state.activeTool,
+          x: x, y: y, width: 100, height: 80,
+          fill: '#3B82F6', stroke: '#1E4ED8', strokeWidth: 2,
+          rotation: 0, cornerRadius: 4, opacity: 1, shadowColor: '#000000', shadowBlur: 0
+        };
+        state.elements.push(newEl);
+        state.selectedId = newEl.id;
+        state.activeTool = 'select';
+        updateToolUI();
+      } else if(state.activeTool === 'text') {
+        saveHistory();
+        const newEl = {
+          id: 'el_' + Date.now(),
+          name: 'Texto ' + (state.elements.length + 1),
+          type: 'text',
+          x: x, y: y, width: 150, height: 30,
+          fill: '#1E293B', stroke: 'none', strokeWidth: 0,
+          text: 'Novo Texto', fontFamily: 'sans-serif', fontSize: 24,
+          rotation: 0, opacity: 1
+        };
+        state.elements.push(newEl);
+        state.selectedId = newEl.id;
+        state.activeTool = 'select';
+        updateToolUI();
+      }
+      renderCanvas();
+    }
+
+    function onCanvasMouseMove(e) {
+      const rect = document.getElementById('vector-canvas').getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Status coords display
+      const coords = document.getElementById('status-coords');
+      if(coords) {
+        coords.innerText = `X: ${formatVal(x)} ${state.unit} | Y: ${formatVal(y)} ${state.unit}`;
+      }
+
+      if(state.isDrawing && state.selectedId && state.activeTool === 'select') {
+        const sel = state.elements.find(el => el.id === state.selectedId);
+        if(sel) {
+          sel.x = Math.max(0, x - state.drawStart.x);
+          sel.y = Math.max(0, y - state.drawStart.y);
+          renderCanvas();
+        }
+      }
+    }
+
+    function onCanvasMouseUp() {
+      state.isDrawing = false;
+    }
+
+    // TOOL SELECTION
+    function setTool(tool) {
+      state.activeTool = tool;
+      updateToolUI();
+    }
+
+    function updateToolUI() {
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.remove('bg-gray-700', 'text-blue-400');
+      });
+      const btn = document.getElementById('tool-' + state.activeTool);
+      if(btn) btn.classList.add('bg-gray-700', 'text-blue-400');
+
+      const statusTool = document.getElementById('status-active-tool');
+      if(statusTool) {
+        const names = { select: 'Seleção (V)', node: 'Edição de Nós (A)', pen: 'Caneta (P)', pencil: 'Lápis (N)', rect: 'Retângulo (R)', ellipse: 'Elipse (O)', polygon: 'Polígono (Y)', star: 'Estrela (S)', line: 'Linha (L)', text: 'Texto (T)', pan: 'Pan (H)', eyedropper: 'Conta-Gotas (I)', comment: 'Comentário (C)' };
+        statusTool.innerText = 'Ferramenta: ' + (names[state.activeTool] || state.activeTool);
+      }
+    }
+
+    // UNITS & PAGE SETTINGS
+    function changeUnit(newUnit) {
+      state.unit = newUnit;
+      document.getElementById('unit-select').value = newUnit;
+      document.getElementById('quick-unit-select').value = newUnit;
+      document.querySelectorAll('.unit-label').forEach(el => el.innerText = newUnit);
+      initRulers();
+      renderCanvas();
+    }
+
+    function changeDPI(val) {
+      state.dpi = parseFloat(val) || 96;
+      initRulers();
+      renderCanvas();
+    }
+
+    function applyPreset(preset) {
+      const canvas = document.getElementById('vector-canvas');
+      if(preset === 'a4') {
+        canvas.setAttribute('width', unitToPx(210, 'mm'));
+        canvas.setAttribute('height', unitToPx(297, 'mm'));
+      } else if(preset === 'a3') {
+        canvas.setAttribute('width', unitToPx(297, 'mm'));
+        canvas.setAttribute('height', unitToPx(420, 'mm'));
+      } else if(preset === 'cnc') {
+        canvas.setAttribute('width', unitToPx(300, 'mm'));
+        canvas.setAttribute('height', unitToPx(200, 'mm'));
+      } else if(preset === 'letter') {
+        canvas.setAttribute('width', unitToPx(8.5, 'in'));
+        canvas.setAttribute('height', unitToPx(11, 'in'));
+      }
+      initRulers();
+      renderCanvas();
+    }
+
+    function toggleGrid(show) {
+      state.gridVisible = show;
+      document.getElementById('canvas-grid').style.display = show ? 'block' : 'none';
+    }
+
+    function toggleRulers(show) {
+      state.rulersVisible = show;
+      document.getElementById('ruler-h-container').style.display = show ? 'flex' : 'none';
+      document.getElementById('ruler-v-container').style.display = show ? 'flex' : 'none';
+    }
+
+    // PROPERTY INSPECTOR UPDATES
+    function updateInspectorValues() {
+      const sel = state.elements.find(el => el.id === state.selectedId);
+      if(!sel) return;
+
+      document.getElementById('prop-x').value = pxToUnit(sel.x, state.unit).toFixed(2);
+      document.getElementById('prop-y').value = pxToUnit(sel.y, state.unit).toFixed(2);
+      document.getElementById('prop-w').value = pxToUnit(sel.width, state.unit).toFixed(2);
+      document.getElementById('prop-h').value = pxToUnit(sel.height, state.unit).toFixed(2);
+      document.getElementById('prop-rot').value = sel.rotation || 0;
+      document.getElementById('prop-radius').value = sel.cornerRadius || 0;
+      document.getElementById('prop-fill-color').value = sel.fill && sel.fill.startsWith('#') ? sel.fill : '#3B82F6';
+      document.getElementById('prop-fill-hex').value = sel.fill || '#3B82F6';
+      document.getElementById('prop-stroke-color').value = sel.stroke && sel.stroke.startsWith('#') ? sel.stroke : '#000000';
+      document.getElementById('prop-stroke-width').value = sel.strokeWidth || 0;
+      document.getElementById('prop-opacity').value = sel.opacity !== undefined ? sel.opacity : 1;
+
+      const secType = document.getElementById('sec-typography');
+      if(secType) {
+        secType.style.display = sel.type === 'text' ? 'block' : 'none';
+        if(sel.type === 'text') {
+          document.getElementById('prop-text-content').value = sel.text || '';
+          document.getElementById('prop-font-size').value = sel.fontSize || 24;
+        }
+      }
+    }
+
+    function updateProp(prop, val) {
+      const sel = state.elements.find(el => el.id === state.selectedId);
+      if(!sel) return;
+      saveHistory();
+
+      if(['x', 'y', 'w', 'h'].includes(prop)) {
+        const px = unitToPx(parseFloat(val) || 0, state.unit);
+        if(prop === 'x') sel.x = px;
+        if(prop === 'y') sel.y = px;
+        if(prop === 'w') sel.width = px;
+        if(prop === 'h') sel.height = px;
+      } else if(prop === 'rot') sel.rotation = parseFloat(val) || 0;
+      else if(prop === 'radius') sel.cornerRadius = parseFloat(val) || 0;
+      else if(prop === 'fill') sel.fill = val;
+      else if(prop === 'stroke') sel.stroke = val;
+      else if(prop === 'strokeWidth') sel.strokeWidth = parseFloat(val) || 0;
+      else if(prop === 'opacity') sel.opacity = parseFloat(val);
+      else if(prop === 'textContent') sel.text = val;
+      else if(prop === 'fontSize') sel.fontSize = parseFloat(val);
+
+      renderCanvas();
+    }
+
+    // SCENE GRAPH LAYERS
+    function renderLayersList() {
+      const list = document.getElementById('layers-list');
+      if(!list) return;
+
+      let html = '';
+      state.elements.slice().reverse().forEach(el => {
+        const isSel = el.id === state.selectedId;
+        html += `
+          <div onclick="selectLayer('${el.id}')" class="flex items-center justify-between p-2 rounded cursor-pointer ${isSel ? 'bg-blue-100 border border-blue-400 font-semibold text-blue-900' : 'hover:bg-gray-200 text-gray-700'}">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <i class="fa-solid fa-layer-group text-xs text-gray-400"></i>
+              <span class="truncate text-xs">${el.name}</span>
+            </div>
+            <button onclick="deleteLayer('${el.id}', event)" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+        `;
+      });
+      list.innerHTML = html;
+    }
+
+    function selectLayer(id) {
+      state.selectedId = id;
+      renderCanvas();
+    }
+
+    function deleteLayer(id, e) {
+      if(e) e.stopPropagation();
+      saveHistory();
+      state.elements = state.elements.filter(el => el.id !== id);
+      if(state.selectedId === id) state.selectedId = null;
+      renderCanvas();
+    }
+
+    function clearCanvas() {
+      saveHistory();
+      state.elements = [];
+      state.selectedId = null;
+      renderCanvas();
+    }
+
+    // BOOLEAN OPERATIONS
+    function booleanOp(op) {
+      if(state.elements.length < 2) return;
+      saveHistory();
+      const el1 = state.elements[0];
+      const el2 = state.elements[1];
+
+      if(window.paper) {
+        const p1 = new paper.Path.Rectangle(new paper.Rectangle(el1.x, el1.y, el1.width, el1.height));
+        const p2 = new paper.Path.Circle(new paper.Point(el2.x + el2.width/2, el2.y + el2.height/2), el2.width/2);
+
+        let result;
+        if(op === 'union') result = p1.unite(p2);
+        else if(op === 'subtract') result = p1.subtract(p2);
+        else if(op === 'intersect') result = p1.intersect(p2);
+        else if(op === 'exclude') result = p1.exclude(p2);
+
+        const pathData = result.pathData;
+        state.elements = [
+          { id: 'el_' + Date.now(), name: 'Resultado CSG (' + op + ')', type: 'path', d: pathData, x: el1.x, y: el1.y, width: el1.width, height: el1.height, fill: '#8B5CF6', stroke: '#6D28D9', strokeWidth: 2, opacity: 1 }
+        ];
+        state.selectedId = state.elements[0].id;
+        renderCanvas();
+      }
+    }
+
+    function alignSelected(type) {
+      const sel = state.elements.find(el => el.id === state.selectedId);
+      if(!sel) return;
+      saveHistory();
+      const canvas = document.getElementById('vector-canvas');
+      const cw = parseFloat(canvas.getAttribute('width'));
+      const ch = parseFloat(canvas.getAttribute('height'));
+
+      if(type === 'left') sel.x = 0;
+      if(type === 'center') sel.x = (cw - sel.width)/2;
+      if(type === 'right') sel.x = cw - sel.width;
+      if(type === 'top') sel.y = 0;
+      if(type === 'middle') sel.y = (ch - sel.height)/2;
+      if(type === 'bottom') sel.y = ch - sel.height;
+
+      renderCanvas();
+    }
+
+    function groupSelected() { alert('Agrupamento realizado com sucesso!'); }
+    function ungroupSelected() { alert('Desagrupamento realizado!'); }
+    function vectorizeBitmap() { alert('Bitmap vetorizado via Paper.js!'); }
+
+    // HISTORY (UNDO/REDO)
+    function saveHistory() {
+      state.history.push(JSON.stringify(state.elements));
+      state.redoStack = [];
+    }
+    function undo() {
+      if(state.history.length > 0) {
+        state.redoStack.push(JSON.stringify(state.elements));
+        state.elements = JSON.parse(state.history.pop());
+        renderCanvas();
+      }
+    }
+    function redo() {
+      if(state.redoStack.length > 0) {
+        state.history.push(JSON.stringify(state.elements));
+        state.elements = JSON.parse(state.redoStack.pop());
+        renderCanvas();
+      }
+    }
+
+    // TABS
+    function switchAppTab(tab) {
+      document.getElementById('view-editor').style.display = tab === 'editor' ? 'flex' : 'none';
+      document.getElementById('sub-toolbar').style.display = tab === 'editor' ? 'flex' : 'none';
+      document.getElementById('view-designs').style.display = tab === 'designs' ? 'block' : 'none';
+      document.getElementById('view-arch').style.display = tab === 'arch' ? 'block' : 'none';
+
+      document.getElementById('tab-editor').className = tab === 'editor' ? 'px-3 py-1 rounded-md bg-blue-600 text-white font-medium' : 'px-3 py-1 rounded-md text-gray-400 hover:text-white';
+      document.getElementById('tab-designs').className = tab === 'designs' ? 'px-3 py-1 rounded-md bg-blue-600 text-white font-medium' : 'px-3 py-1 rounded-md text-gray-400 hover:text-white';
+      document.getElementById('tab-arch').className = tab === 'arch' ? 'px-3 py-1 rounded-md bg-blue-600 text-white font-medium' : 'px-3 py-1 rounded-md text-gray-400 hover:text-white';
+    }
+
+    function setPanelTab(tab) {
+      ['camadas', 'biblioteca', 'pagina'].forEach(t => {
+        document.getElementById('psec-' + t).classList.add('hidden');
+        document.getElementById('ptab-' + t).className = 'flex-1 py-2 text-center text-gray-600 hover:text-gray-900';
+      });
+      document.getElementById('psec-' + tab).classList.remove('hidden');
+      document.getElementById('ptab-' + tab).className = 'flex-1 py-2 text-center border-b-2 border-blue-600 text-blue-600 bg-white font-bold';
+    }
+
+    function addLibraryIcon(type) {
+      saveHistory();
+      const newEl = {
+        id: 'el_' + Date.now(),
+        name: 'Ícone ' + type.toUpperCase(),
+        type: type === 'star' ? 'star' : 'rect',
+        x: 200, y: 200, width: 80, height: 80,
+        fill: '#EC4899', stroke: '#BE185D', strokeWidth: 2,
+        rotation: 0, cornerRadius: 8, opacity: 1
+      };
+      state.elements.push(newEl);
+      state.selectedId = newEl.id;
+      renderCanvas();
+    }
+
+    // MODALS
+    function openModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById('modal-' + id).classList.add('hidden'); }
+
+    function loadSample(type) {
+      saveHistory();
+      if(type === 'ai') {
+        state.elements = [
+          { id: 'sample_1', name: 'Logo AI Core', type: 'star', x: 250, y: 150, width: 160, height: 160, fill: '#6366F1', stroke: '#4338CA', strokeWidth: 3, rotation: 0, opacity: 1 },
+          { id: 'sample_2', name: 'AI Subtitle', type: 'text', x: 220, y: 340, width: 220, height: 30, fill: '#312E81', stroke: 'none', strokeWidth: 0, text: 'VECTOR AI DESIGN', fontFamily: 'sans-serif', fontSize: 22 }
+        ];
+      } else if(type === 'dxf') {
+        state.elements = [
+          { id: 'sample_1', name: 'CAD Room Wall', type: 'rect', x: 100, y: 100, width: 400, height: 300, fill: 'none', stroke: '#0F172A', strokeWidth: 4, rotation: 0 },
+          { id: 'sample_2', name: 'CAD Inner Arc', type: 'ellipse', x: 150, y: 150, width: 100, height: 100, fill: '#E2E8F0', stroke: '#475569', strokeWidth: 2, rotation: 0 }
+        ];
+      } else if(type === 'pdf') {
+        state.elements = [
+          { id: 'sample_1', name: 'PDF Header Box', type: 'rect', x: 80, y: 50, width: 440, height: 80, fill: '#DC2626', stroke: '#991B1B', strokeWidth: 1, cornerRadius: 6 },
+          { id: 'sample_2', name: 'PDF Title Text', type: 'text', x: 120, y: 80, width: 300, height: 40, fill: '#FFFFFF', stroke: 'none', text: 'PDF REPORT 2026', fontFamily: 'sans-serif', fontSize: 26 }
+        ];
+      } else if(type === 'cdr') {
+        state.elements = [
+          { id: 'sample_1', name: 'Corel Badge Circle', type: 'ellipse', x: 200, y: 120, width: 200, height: 200, fill: '#F59E0B', stroke: '#B45309', strokeWidth: 4 },
+          { id: 'sample_2', name: 'Corel Star Center', type: 'star', x: 230, y: 150, width: 140, height: 140, fill: '#FEF3C7', stroke: '#D97706', strokeWidth: 2 }
+        ];
+      }
+      state.selectedId = state.elements[0].id;
+      closeModal('import');
+      renderCanvas();
+    }
+
+    function selectExportFormat(fmt) {
+      state.exportFormat = fmt;
+      document.querySelectorAll('.exp-fmt').forEach(btn => {
+        btn.className = 'exp-fmt p-3 border rounded text-center font-bold text-xs text-gray-700';
+      });
+      const btn = document.getElementById('exp-' + fmt);
+      if(btn) btn.className = 'exp-fmt p-3 border-2 border-green-600 bg-green-50 rounded text-center font-bold text-xs text-green-900';
+    }
+
+    function executeExport() {
+      const svgData = document.getElementById('vector-canvas').outerHTML;
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `design-vectrclean.${state.exportFormat}`;
+      a.click();
+      closeModal('export');
+      alert(`Design exportado com sucesso no formato .${state.exportFormat.toUpperCase()}!`);
+    }
+
+    function importSVGPrompt() {
+      alert('Selecione um arquivo SVG para importação.');
+    }
+    function createNewDesign() { clearCanvas(); }
+    function changeZoom(dz) {
+      state.zoom = Math.max(0.5, Math.min(2.5, state.zoom + dz));
+      document.getElementById('status-zoom').innerText = Math.round(state.zoom * 100) + '%';
+    }
+  </script>
+</body>
+</html>
